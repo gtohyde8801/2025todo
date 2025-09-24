@@ -3,9 +3,311 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>오늘의 할 일 (접근성/가독성 개선)</title>
+    <!-- 가독성 좋은 폰트: Roboto(구글), 눈누 기초고딕(한글) 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+
+    <style>
+      body {
+        background: #121212;
+        color: #e0e0e0;
+        font-family: 'Roboto', 'Malgun Gothic', 'Apple SD Gothic Neo', '눈누 기초고딕', sans-serif;
+        font-size: 18px;
+        line-height: 1.6;
+      }
+      h3 {
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #90caf9;
+      }
+      .inp {
+        border-radius: 8px;
+        background: #1e1e1e;
+        border: 1px solid #333;
+        color: #fff;
+        font-size: 18px;
+      }
+      .inp:focus {
+        outline: none;
+        border-color: #64b5f6;
+        box-shadow: 0 0 8px #1976d2;
+      }
+      .inpBtn,
+      .inpMoBtn,
+      .delAll {
+        border-radius: 8px;
+        font-weight: 600;
+        transition: 0.3s;
+        border: none;
+        color: #fff;
+        font-size: 18px;
+        min-width: 80px;
+      }
+      .inpBtn {
+        background: #1976d2;
+      }
+      .inpBtn:focus,
+      .inpBtn:hover {
+        background: #2196f3;
+        outline: 2px solid #90caf9;
+      }
+      .inpMoBtn {
+        background: #ffa000;
+        display: none;
+      }
+      .inpMoBtn:focus,
+      .inpMoBtn:hover {
+        background: #ffb300;
+        outline: 2px solid #ffd54f;
+      }
+      .delAll {
+        background: #d32f2f;
+      }
+      .delAll:focus,
+      .delAll:hover {
+        background: #f44336;
+        outline: 2px solid #ffb4a2;
+      }
+
+      .viewList {
+        margin-top: 40px;
+        padding-left: 0;
+      }
+      .viewList li {
+        background: #1e1e1e;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        padding: 18px 15px;
+        border: 1px solid #333;
+        align-items: center;
+        transition: 0.3s;
+        display: flex;
+        justify-content: space-between;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.08);
+        font-size: 19px;
+      }
+      .viewList li:hover,
+      .viewList li:focus-within {
+        background: #232a31;
+      }
+      .viewList li.done div:first-child {
+        text-decoration: line-through;
+        color: #777;
+      }
+      .viewList li .action-btns {
+        display: flex;
+        gap: 16px;
+      }
+      .action-btns button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 21px;
+        transition: 0.2s;
+      }
+      .action-btns button:focus {
+        outline: 2px solid #90caf9;
+      }
+      .fa-square-check {
+        color: #66bb6a;
+      }
+      .fa-square {
+        color: #90caf9;
+      }
+      .fa-pen {
+        color: #ffb74d;
+      }
+      .fa-trash {
+        color: #e57373;
+      }
+
+      /* 접근성: 포커스 시 그림자 */
+      .action-btns button:focus-visible {
+        box-shadow: 0 0 0 3px #90caf9;
+      }
+      /* 모바일 반응형 처리 */
+      @media (max-width: 600px) {
+        .inp,
+        .inpBtn,
+        .inpMoBtn,
+        .delAll {
+          font-size: 16px;
+        }
+        .viewList li {
+          font-size: 16px;
+          padding: 16px 8px;
+        }
+        .action-btns button {
+          font-size: 19px;
+        }
+      }
+    </style>
   </head>
   <body>
-    test
+    <div class="container py-3">
+      <h3 class="text-center">오늘의 할 일</h3>
+      <form class="row" role="form" aria-label="할 일 입력폼" onsubmit="event.preventDefault();">
+        <div class="col-md-6 offset-md-3 d-flex" style="gap: 8px">
+          <input type="text" class="inp form-control me-2" placeholder="할 일을 입력하세요" aria-label="할 일 입력" />
+          <input type="hidden" class="numInp" />
+          <button type="button" class="inpBtn" aria-label="입력">입력</button>
+          <button type="button" class="inpMoBtn" aria-label="수정">수정</button>
+        </div>
+      </form>
+      <div class="row px-3">
+        <div class="col-md-6 offset-md-3">
+          <ul class="viewList" role="list"></ul>
+        </div>
+      </div>
+      <div class="row py-3">
+        <div class="col-md-6 offset-md-3">
+          <button type="button" class="btn delAll d-block" aria-label="전체 삭제">전체삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let listView = [];
+      const viewDataElem = document.querySelector('.viewList');
+      const inpElem = document.querySelector('.inp');
+      const inpNumElem = document.querySelector('.numInp');
+      const btnElem = document.querySelector('.inpBtn');
+      const btnMoElem = document.querySelector('.inpMoBtn');
+      const btnDelAll = document.querySelector('.delAll');
+
+      btnElem.addEventListener('click', function () {
+        if (inpElem.value.trim() !== '') {
+          let value = { todo: inpElem.value, done: false };
+          listView.push(value);
+          inpElem.value = '';
+          viewData();
+          inpElem.focus();
+        } else {
+          alert('오늘의 할 일을 입력하세요');
+          inpElem.focus();
+        }
+      });
+
+      btnMoElem.addEventListener('click', function () {
+        if (inpElem.value.trim() !== '') {
+          listView[inpNumElem.value].todo = inpElem.value;
+          btnElem.style.display = 'inline-block';
+          btnMoElem.style.display = 'none';
+          inpElem.value = '';
+          viewData();
+          inpElem.focus();
+        }
+      });
+
+      btnDelAll.addEventListener('click', function () {
+        if (confirm('정말 전체 삭제하시겠습니까?')) {
+          listView = [];
+          viewData();
+        }
+      });
+
+      function viewData() {
+        let viewData = '';
+        listView.forEach(function (item, i) {
+          viewData += `
+            <li class="${item.done ? 'done' : ''}" tabindex="0" aria-label="할 일: ${item.todo}${
+            item.done ? ' (완료됨)' : ''
+          }">
+              <div>${item.todo}</div>
+              <div class="action-btns">
+                <button type="button" aria-label="${
+                  item.done ? '미완료로 변경' : '완료로 표시'
+                }" data-index="${i}" class="toggle-done">
+                  <i class="fa${item.done ? '-solid' : '-regular'} fa-square${item.done ? '-check' : ''}"></i>
+                </button>
+                <button type="button" aria-label="수정" data-index="${i}" class="modi-btn"${
+            item.done ? ' disabled aria-disabled="true"' : ''
+          }>
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button type="button" aria-label="삭제" data-index="${i}" class="del-btn"${
+            item.done ? ' disabled aria-disabled="true"' : ''
+          }>
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </li>
+          `;
+        });
+        viewDataElem.innerHTML = viewData;
+
+        // 키보드 및 마우스 이벤트 핸들러 메모리 안전하게 다시 등록
+        viewDataElem.querySelectorAll('.toggle-done').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            done(e.currentTarget.dataset.index);
+          });
+          btn.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              done(e.currentTarget.dataset.index);
+            }
+          });
+        });
+
+        viewDataElem.querySelectorAll('.modi-btn').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            if (!listView[e.currentTarget.dataset.index].done)
+              modi(e.currentTarget.dataset.index, listView[e.currentTarget.dataset.index].todo);
+          });
+          btn.addEventListener('keydown', function (e) {
+            if ((e.key === 'Enter' || e.key === ' ') && !listView[e.currentTarget.dataset.index].done) {
+              modi(e.currentTarget.dataset.index, listView[e.currentTarget.dataset.index].todo);
+            }
+          });
+        });
+
+        viewDataElem.querySelectorAll('.del-btn').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            if (!listView[e.currentTarget.dataset.index].done) del(e.currentTarget.dataset.index);
+          });
+          btn.addEventListener('keydown', function (e) {
+            if ((e.key === 'Enter' || e.key === ' ') && !listView[e.currentTarget.dataset.index].done) {
+              del(e.currentTarget.dataset.index);
+            }
+          });
+        });
+      }
+
+      function del(index) {
+        listView.splice(index, 1);
+        viewData();
+        inpElem.focus();
+      }
+
+      function done(index) {
+        listView[index].done = !listView[index].done;
+        viewData();
+      }
+
+      function modi(index, todo) {
+        inpElem.value = todo;
+        inpNumElem.value = index;
+        btnElem.style.display = 'none';
+        btnMoElem.style.display = 'inline-block';
+        inpElem.focus();
+      }
+
+      // 입력창에서 Enter키로 입력 기능 지원
+      inpElem.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && btnElem.style.display !== 'none') {
+          btnElem.click();
+        } else if (e.key === 'Enter' && btnMoElem.style.display !== 'none') {
+          btnMoElem.click();
+        }
+      });
+
+      // 초기 포커스
+      window.onload = () => {
+        inpElem.focus();
+      };
+    </script>
   </body>
 </html>
